@@ -9,29 +9,36 @@ namespace MasterMindCliGame
     {
         private List<string> _possibleCodes;
         private Random _random = new Random();
+        private int _codeLength;
+        private char[] _validChars;
         public int PossibleCount => _possibleCodes.Count;
 
-        public ComputerSolver()
+        public ComputerSolver(int codeLength, char[] validChars)
         {
+            _codeLength = codeLength;
+            _validChars = validChars;
             _possibleCodes = GenerateAllCodes();
         }
 
         // Generate list  of all codes
         private List<string> GenerateAllCodes()
         {
-            var codes = new List<string>();
-            char[] c = MasterMindEngine.Colors;
-
-            foreach (var c1 in c)
-                foreach (var c2 in c)
-                    foreach (var c3 in c)
-                        foreach (var c4 in c)
-                        {
-                            codes.Add($"{c1}{c2}{c3}{c4}");
-                        }
-            return codes;
+            var list = new List<string>();
+            GenerateCodesRecursive("", list);
+            return list;
         }
-
+        private void GenerateCodesRecursive(string currentPrefix, List<string> resultList)
+        {
+            if (currentPrefix.Length == _codeLength)
+            {
+                resultList.Add(currentPrefix);
+                return;
+            }
+            foreach (char c in _validChars)
+            {
+                GenerateCodesRecursive(currentPrefix + c, resultList);
+            }
+        }
         // Get the next best guess
         public string GetNextGuess()
         {
