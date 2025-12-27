@@ -32,7 +32,7 @@ You need the .NET SDK installed.
 
 1.  Clone the repository:
     ```bash
-    git clone [https://github.com/Pepegakac123/MasterMindCliGame.git](https://github.com/Pepegakac123/MasterMindCliGame.git)
+    git clone https://github.com/Pepegakac123/MasterMindCliGame
     ```
 2.  Navigate to the project folder:
     ```bash
