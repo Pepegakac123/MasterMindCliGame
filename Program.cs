@@ -8,45 +8,80 @@ namespace MasterMindCliGame
         {
             Console.WriteLine("=== MASTERMIND ===");
             Console.WriteLine("Autor: Kacper Adamczyk");
-            Console.WriteLine("Wybierz tryb gry:");
-            Console.WriteLine("1. Ty zgadujesz kod komputera");
-            Console.WriteLine("2. Komputer zgaduje Twój kod");
-            Console.Write("Twój wybór (1/2): ");
 
-            var key = Console.ReadKey().KeyChar;
-            Console.WriteLine("\n");
-
-            if (key == '2')
+            while (true)
             {
-                PlayComputerGuesserMode();
-            }
-            else
-            {
-                PlayHumanGuesserMode();
-            }
+                Console.WriteLine("\n--- MENU GŁÓWNE ---");
+                Console.WriteLine("1. Gra Klasyczna (Zadanie 1 i 2) [4 kolory, kod dł. 4]");
+                Console.WriteLine("2. Gra Niestandardowa (Zadanie 3 i 5) [Wybór parametrów]");
+                Console.WriteLine("3. Wyjście");
+                Console.Write("Twój wybór: ");
 
-            Console.WriteLine("\nNaciśnij dowolny klawisz, aby zakończyć...");
-            Console.ReadKey();
+                var key = Console.ReadKey().KeyChar;
+                Console.WriteLine();
+
+                if (key == '3') break;
+
+                // Domyślne ustawienia (Klasyczne)
+                int length = 4;
+                int colors = 6;
+                bool useNumbers = false;
+
+                if (key == '2')
+                {
+                    (length, colors, useNumbers) = ConfigureGame();
+                }
+
+                MasterMindEngine game = new MasterMindEngine(length, colors, useNumbers);
+
+                Console.WriteLine("\nKto ma zgadywać?");
+                Console.WriteLine("1. Człowiek");
+                Console.WriteLine("2. Komputer");
+                var modeKey = Console.ReadKey().KeyChar;
+                Console.WriteLine();
+
+                if (modeKey == '2')
+                {
+                    PlayComputerGuesserMode(game);
+                }
+                else
+                {
+                    PlayHumanGuesserMode(game);
+                }
+            }
         }
-
-        static void PlayHumanGuesserMode()
+        // Konfiguracan trybu gry z parametrami zadanie 3 i 5
+        static (int length, int colors, bool useNumbers) ConfigureGame()
         {
-            MasterMindEngine game = new MasterMindEngine();
-            Console.WriteLine("=== TRYB: CZŁOWIEK ZGADUJE ===");
-            Console.WriteLine($"Dostępne kolory: {string.Join(", ", game.ValidColors)}");
-            Console.WriteLine("Przykład: rrgb");
-            Console.WriteLine($"Liczba prób: {game.GetMaxAttempts}");
+            Console.WriteLine("\n--- KONFIGURACJA (Zadanie 3 i 5) ---");
+
+            Console.WriteLine("Rodzaj znaków:");
+            Console.WriteLine("k - Kolory (klasyczne)");
+            Console.WriteLine("c - Cyfry (0-9) [Zadanie 5]");
+            bool useNumbers = Console.ReadKey().KeyChar == 'c';
+            Console.WriteLine();
+
+            int maxItems = useNumbers ? 10 : 8;
+            int colorsCount = GetIntInput($"Liczba dostępnych znaków (6-{maxItems}): ", 6, maxItems);
+            int length = GetIntInput("Długość kodu (4-6): ", 4, 6);
+
+            return (length, colorsCount, useNumbers);
+        }
+        static void PlayHumanGuesserMode(MasterMindEngine game)
+        {
+            Console.WriteLine($"\nZGADNIJ KOD! Długość: {game.CodeLength}, Znaków: {game.ValidCharacters.Length}");
+            Console.WriteLine($"Dostępne znaki: {string.Join(", ", game.ValidCharacters)}");
 
             while (!game.IsGameOver)
             {
                 Console.WriteLine();
-                Console.Write($"Próba {game.AttemptsUsed + 1}. Podaj kod: ");
+                Console.Write($"Próba {game.AttemptsUsed + 1}/{game.MaxAttempts}. Podaj kod: ");
                 string input = Console.ReadLine();
 
                 if (!game.IsInputValid(input))
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("Błąd! Użyj 4 znaków z: " + string.Join(", ", game.ValidColors));
+                    Console.WriteLine("Błąd! Sprawdź długość i dostępne znaki.");
                     Console.ResetColor();
                     continue;
                 }
@@ -58,57 +93,54 @@ namespace MasterMindCliGame
             if (game.IsGameWon)
             {
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine($"\nGRATULACJE! Wygrałeś w {game.AttemptsUsed} prób.");
-                Console.ResetColor();
+                Console.WriteLine($"\nGRATULACJE! Wygrałeś!");
             }
             else
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("\nKONIEC GRY.");
-                Console.WriteLine($"Sekretny kod to: {game.GetSecretCodeIfLost()}");
-                Console.ResetColor();
+                Console.WriteLine($"\nPRZEGRAŁEŚ. Kod: {game.GetSecretCodeIfLost()}");
             }
+            Console.ResetColor();
         }
 
-        static void PlayComputerGuesserMode()
+        static void PlayComputerGuesserMode(MasterMindEngine game)
         {
-            Console.WriteLine("=== TRYB: KOMPUTER ZGADUJE ===");
-            Console.WriteLine("Pomyśl o kodzie (4 kolory z: r, y, g, b, m, c).");
-            Console.WriteLine("Zapisz go sobie na kartce.");
-            Console.WriteLine("Naciśnij ENTER, gdy będziesz gotowy.");
+            Console.WriteLine("\nKOMPUTER ZGADUJE");
+            Console.WriteLine($"Pomyśl kod o długości {game.CodeLength} używając znaków: {string.Join("", game.ValidCharacters)}");
+            Console.WriteLine("Naciśnij ENTER gdy gotowy...");
             Console.ReadLine();
 
-            ComputerSolver solver = new ComputerSolver();
+            // Przekazujemy parametry do Solvera!
+            ComputerSolver solver = new ComputerSolver(game.CodeLength, game.ValidCharacters);
             int attempts = 0;
 
             while (true)
             {
                 attempts++;
                 string guess = solver.GetNextGuess();
+
                 if (guess == null)
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("\nBŁĄD: Lista możliwych kodów jest pusta!");
-                    Console.WriteLine("Prawdopodobnie podałeś błędne oceny w poprzednich krokach.");
-                    Console.ResetColor();
+                    Console.WriteLine("BŁĄD: Lista pusta (oszukiwałeś?).");
                     return;
                 }
 
                 Console.WriteLine($"\nRuch komputera #{attempts}:");
                 PrintGuessOnly(guess);
-                Console.WriteLine($" (Możliwe kody: {solver.PossibleCount})");
-                Console.WriteLine("Oceń ten ruch:");
-                int exact = GetIntInput("  -> Liczba trafień dokładnych (Czarne/X): ", 0, 4);
+                Console.WriteLine($" (Możliwości: {solver.PossibleCount})");
 
-                if (exact == 4)
+                Console.WriteLine("Oceń:");
+                int exact = GetIntInput("  -> Trafienia dokładne (X): ", 0, game.CodeLength);
+
+                if (exact == game.CodeLength)
                 {
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine($"\nKomputer odgadł Twój kod w {attempts} ruchach!");
-                    Console.ResetColor();
+                    Console.WriteLine("Komputer wygrał!");
                     break;
                 }
-                int maxInexact = 4 - exact;
-                int inexact = GetIntInput($"  -> Liczba trafień niedokładnych (Białe/O, max {maxInexact}): ", 0, maxInexact);
+
+                int maxInexact = game.CodeLength - exact;
+                int inexact = GetIntInput($"  -> Trafienia niedokładne (O, max {maxInexact}): ", 0, maxInexact);
+
                 solver.ProcessFeedback(guess, exact, inexact);
             }
         }
@@ -143,17 +175,13 @@ namespace MasterMindCliGame
         {
             foreach (char c in guess)
             {
-                ConsoleColor color = ConsoleColor.Gray;
-                switch (c)
-                {
-                    case 'r': color = ConsoleColor.Red; break;
-                    case 'y': color = ConsoleColor.Yellow; break;
-                    case 'g': color = ConsoleColor.Green; break;
-                    case 'b': color = ConsoleColor.Blue; break;
-                    case 'm': color = ConsoleColor.Magenta; break;
-                    case 'c': color = ConsoleColor.Cyan; break;
-                }
-                Console.ForegroundColor = color;
+                if (char.IsDigit(c)) Console.ForegroundColor = ConsoleColor.Cyan;
+                else if (c == 'r') Console.ForegroundColor = ConsoleColor.Red;
+                else if (c == 'g') Console.ForegroundColor = ConsoleColor.Green;
+                else if (c == 'b') Console.ForegroundColor = ConsoleColor.Blue;
+                else if (c == 'y') Console.ForegroundColor = ConsoleColor.Yellow;
+                else Console.ForegroundColor = ConsoleColor.Magenta;
+
                 Console.Write(c);
             }
             Console.ResetColor();
