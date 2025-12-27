@@ -9,6 +9,7 @@ namespace MasterMindCliGame
         // Available colors: r-red, y-yellow, g-green, b-blue, m-magenta, c-cyan
         public readonly char[] ValidColors = { 'r', 'y', 'g', 'b', 'm', 'c' };
 
+        public static readonly char[] Colors = { 'r', 'y', 'g', 'b', 'm', 'c' };
         private const int CodeLength = 4;
         private const int MaxAttempts = 9;
 
@@ -30,6 +31,8 @@ namespace MasterMindCliGame
             IsGameWon = false;
         }
 
+        public int GetMaxAttempts => MaxAttempts;
+
         private char[] GenerateSecretCode()
         {
             var random = new Random();
@@ -42,24 +45,32 @@ namespace MasterMindCliGame
             Console.WriteLine($"DEBUG: {new string(code)}");
             return code;
         }
-
-        // Exact = Black (correct color, correct place)
-        // Inexact = White (correct color, wrong place)
         public (int exact, int inexact) EvaluateGuess(string guess)
         {
+            var result = CalculateScore(new string(_secretCode), guess);
+
+            AttemptsUsed++;
+            if (result.exact == CodeLength) IsGameWon = true;
+
+            return result;
+        }
+
+        // Will be used by ComputerSolver to filter possibilites
+        public static (int exact, int inexact) CalculateScore(string code, string guess)
+        {
+            char[] codeChars = code.ToLower().ToCharArray();
             char[] guessChars = guess.ToLower().ToCharArray();
 
             int exact = 0;
             int inexact = 0;
 
-            // Helper arrays to track which positions are already matched
             bool[] codeUsed = new bool[CodeLength];
             bool[] guessUsed = new bool[CodeLength];
 
-            // Check for Exact matches
+            // Exact matches
             for (int i = 0; i < CodeLength; i++)
             {
-                if (guessChars[i] == _secretCode[i])
+                if (guessChars[i] == codeChars[i])
                 {
                     exact++;
                     codeUsed[i] = true;
@@ -67,27 +78,20 @@ namespace MasterMindCliGame
                 }
             }
 
-            // Check for Inexact matches
+            // Inexact matches
             for (int i = 0; i < CodeLength; i++)
             {
-                if (guessUsed[i]) continue; // Already matched as exact
+                if (guessUsed[i]) continue;
 
                 for (int j = 0; j < CodeLength; j++)
                 {
-                    if (!codeUsed[j] && guessChars[i] == _secretCode[j])
+                    if (!codeUsed[j] && guessChars[i] == codeChars[j])
                     {
                         inexact++;
                         codeUsed[j] = true;
                         break;
                     }
                 }
-            }
-
-            AttemptsUsed++;
-
-            if (exact == CodeLength)
-            {
-                IsGameWon = true;
             }
 
             return (exact, inexact);
