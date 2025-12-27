@@ -6,24 +6,40 @@ namespace MasterMindCliGame
 {
     public class MasterMindEngine
     {
-        // Available colors: r-red, y-yellow, g-green, b-blue, m-magenta, c-cyan
-        public readonly char[] ValidColors = { 'r', 'y', 'g', 'b', 'm', 'c' };
+        private readonly char[] _colorAlphabet = { 'r', 'y', 'g', 'b', 'm', 'c', 'w', 'k' }; // do 8 kolorów
+        private readonly char[] _digitAlphabet = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
 
-        public static readonly char[] Colors = { 'r', 'y', 'g', 'b', 'm', 'c' };
-        private const int CodeLength = 4;
-        private const int MaxAttempts = 9;
+        public char[] ValidCharacters { get; private set; }
+        public int CodeLength { get; private set; }
+        public int MaxAttempts { get; private set; }
 
         private char[] _secretCode;
         public int AttemptsUsed { get; private set; }
         public bool IsGameWon { get; private set; }
-
         public bool IsGameOver => IsGameWon || AttemptsUsed >= MaxAttempts;
 
-        public MasterMindEngine()
+        public MasterMindEngine() : this(4, 6, false) // Domyślny zadanie 1 i 2 - zwykłe zasady
         {
+        }
+        // Konstruktor parametryzowany (dla Zadania 3 i 5)
+        public MasterMindEngine(int length, int charCount, bool useNumbers)
+        {
+            CodeLength = length;
+            MaxAttempts = 9 + (length - 4) * 2;
+
+            if (useNumbers)
+            {
+                // Zadanie 5: Cyfry
+                ValidCharacters = _digitAlphabet.Take(charCount).ToArray();
+            }
+            else
+            {
+                // Zadanie 3: Kolory (6..8)
+                ValidCharacters = _colorAlphabet.Take(charCount).ToArray();
+            }
+
             StartNewGame();
         }
-
         public void StartNewGame()
         {
             _secretCode = GenerateSecretCode();
@@ -39,10 +55,10 @@ namespace MasterMindCliGame
             var code = new char[CodeLength];
             for (int i = 0; i < CodeLength; i++)
             {
-                code[i] = ValidColors[random.Next(ValidColors.Length)];
+                code[i] = ValidCharacters[random.Next(ValidCharacters.Length)];
             }
-            // debug (see the secret code)
-            Console.WriteLine($"DEBUG: {new string(code)}");
+            // Debug:
+            // Console.WriteLine($"DEBUG: {new string(code)}");
             return code;
         }
         public (int exact, int inexact) EvaluateGuess(string guess)
@@ -58,17 +74,18 @@ namespace MasterMindCliGame
         // Will be used by ComputerSolver to filter possibilites
         public static (int exact, int inexact) CalculateScore(string code, string guess)
         {
+            int len = code.Length;
             char[] codeChars = code.ToLower().ToCharArray();
             char[] guessChars = guess.ToLower().ToCharArray();
 
             int exact = 0;
             int inexact = 0;
 
-            bool[] codeUsed = new bool[CodeLength];
-            bool[] guessUsed = new bool[CodeLength];
+            bool[] codeUsed = new bool[len];
+            bool[] guessUsed = new bool[len];
 
             // Exact matches
-            for (int i = 0; i < CodeLength; i++)
+            for (int i = 0; i < len; i++)
             {
                 if (guessChars[i] == codeChars[i])
                 {
@@ -79,11 +96,11 @@ namespace MasterMindCliGame
             }
 
             // Inexact matches
-            for (int i = 0; i < CodeLength; i++)
+            for (int i = 0; i < len; i++)
             {
                 if (guessUsed[i]) continue;
 
-                for (int j = 0; j < CodeLength; j++)
+                for (int j = 0; j < len; j++)
                 {
                     if (!codeUsed[j] && guessChars[i] == codeChars[j])
                     {
@@ -103,7 +120,7 @@ namespace MasterMindCliGame
 
             foreach (char c in input.ToLower())
             {
-                if (!ValidColors.Contains(c)) return false;
+                if (!ValidCharacters.Contains(c)) return false;
             }
             return true;
         }
