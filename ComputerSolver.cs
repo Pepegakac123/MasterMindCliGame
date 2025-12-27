@@ -8,7 +8,7 @@ namespace MasterMindCliGame
     public class ComputerSolver
     {
         private List<string> _possibleCodes;
-
+        private Random _random = new Random();
         public int PossibleCount => _possibleCodes.Count;
 
         public ComputerSolver()
@@ -38,7 +38,8 @@ namespace MasterMindCliGame
             if (_possibleCodes.Count == 0) return null;
 
             // Pick any element from list like in the srategy 3
-            return _possibleCodes[0];
+            int index = _random.Next(_possibleCodes.Count);
+            return _possibleCodes[index];
         }
 
         // Evaluate and Update List L
